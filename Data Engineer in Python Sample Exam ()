@@ -1,0 +1,40 @@
+import pandas as pd
+import numpy as np
+
+def all_pet_data(pet_activities_file, pet_health_file, users_file):
+    # Read CSV files into dataframes
+    try:
+        activities = pd.read_csv(pet_activities_file)
+        health = pd.read_csv(pet_health_file)
+        users = pd.read_csv(users_file)
+    except Exception as e:
+        raise ValueError(f"Error reading files: {e}")
+    
+    # Add required columns to health dataset
+    health['activity_type'] = 'Health'
+    health['duration_minutes'] = 0
+    
+    # Rename visit_date to date for consistency
+    health.rename(columns={'visit_date': 'date'}, inplace=True)
+    
+    # Concatenate activities and health data
+    combined_data = pd.concat([activities, health], ignore_index=True)
+    
+    # Merge with users data (ensuring proper join keys exist)
+    data = combined_data.merge(users, on='pet_id', how='left')
+    
+    # Convert duration_minutes to numeric, coercing errors to NaN
+    data['duration_minutes'] = pd.to_numeric(data['duration_minutes'], errors='coerce')
+    
+    # Convert date to datetime format
+    data['date'] = pd.to_datetime(data['date'], errors='coerce')
+    
+    # Standardize activity_type names
+    activity_mapping = {'Walk': 'Walking', 'Rest': 'Resting', 'Play': 'Playing'}
+    data['activity_type'] = data['activity_type'].replace(activity_mapping)
+    
+    return data
+
+# Example call (ensure files exist before running)
+data = all_pet_data('pet_activities.csv', 'pet_health.csv', 'users.csv')
+data.head()
